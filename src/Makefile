@@ -1,19 +1,24 @@
-# Variables
+# 컴파일러 지정
 CXX = g++
-CXXFLAGS = -I/usr/include/blocksci/external
-LDFLAGS = -lblocksci
-SOURCES = $(wildcard *.cpp)
-OBJECTS = $(SOURCES:.cpp=.o)
+
+# 컴파일 옵션 및 플래그
+CXXFLAGS = -I/usr/local/include/mongocxx/v_noabi -I/usr/local/include/bsoncxx/v_noabi -I/usr/include/blocksci/external
+LDFLAGS = -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu -lmongocxx -lbsoncxx -lcurl -lblocksci -lboost_system -lcrypto -lssl -lcpprest
+
+# 소스 파일 및 목적 파일
+SRCS = $(wildcard *.cpp)
+OBJS = $(SRCS:.cpp=.o)
+
+# 실행 파일 이름
 TARGET = start
 
-# Rules
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
-	$(CXX) $(OBJECTS) $(LDFLAGS) -o $@
+$(TARGET): $(OBJS)
+	$(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) -c $< -o $@ $(CXXFLAGS)
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJS) $(TARGET)

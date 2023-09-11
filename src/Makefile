@@ -6,7 +6,9 @@ CXXFLAGS = -I/usr/local/include/mongocxx/v_noabi -I/usr/local/include/bsoncxx/v_
 LDFLAGS = -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu -lmongocxx -lbsoncxx -lcurl -lblocksci -lboost_system -lcrypto -lssl -lcpprest
 
 # 소스 파일 및 목적 파일
-SRCS = $(wildcard *.cpp)
+SRCS = $(wildcard *.cpp) 
+#$(wildcard api/*.cpp)
+SRCS := $(filter-out AddNode.cpp, $(SRCS))
 OBJS = $(SRCS:.cpp=.o)
 
 # 실행 파일 이름

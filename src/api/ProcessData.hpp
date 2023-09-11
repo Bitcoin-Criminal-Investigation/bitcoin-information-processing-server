@@ -1,14 +1,15 @@
 #ifndef PROCESSDATA_HPP
 #define PROCESSDATA_HPP
-#include "BitcoinCore.hpp"
-#include "MongoDB.hpp"
+#include "../BitcoinCore.hpp"
+#include "../MongoDB.hpp"
 
-class ProcessData {
- public:
+class ProcessData
+{
+public:
   ProcessData(BitcoinCore &, MongoDB &);
   void ProcessBlock(int);
 
- private:
+private:
   int height;
   BitcoinCore &bitcoinCore;
   MongoDB &mongo;

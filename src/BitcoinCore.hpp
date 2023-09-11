@@ -4,15 +4,16 @@
 
 #include <nlohmann/json.hpp>
 
-class BitcoinCore {
- public:
-  BitcoinCore(std::string);
+class BitcoinCore
+{
+public:
+  BitcoinCore(const std::string &userpass);
   int GetHeight();
   nlohmann::json GetBlock(const std::string &, int = 1);
   std::string GetBlockHash(const int);
   nlohmann::json GetRawTransaction(const std::string &);
 
- private:
+private:
   std::string userpass;
   std::string url = "http://localhost:8332";
 

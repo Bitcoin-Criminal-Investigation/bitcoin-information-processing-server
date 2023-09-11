@@ -5,80 +5,67 @@ using json = nlohmann::json;
 ProcessData::ProcessData(BitcoinCore &bitcoinCore, MongoDB &mongo)
     : bitcoinCore(bitcoinCore), mongo(mongo) {}
 
-void ProcessData::ProcessBlock(int height) {
+void ProcessData::ProcessBlock(int height)
+{
   std::string blockHash = bitcoinCore.GetBlockHash(height);
   json blockData = bitcoinCore.GetBlock(blockHash);
 
-  for (auto &txid : blockData["tx"]) ProcessTx(txid.dump(), blockData);
+  for (auto &txid : blockData["tx"])
+    ProcessTx(txid.dump(), blockData);
 }
 
-void ProcessData::ProcessTx(std::string txid, json &blockData) {
+void ProcessData::ProcessTx(std::string txid, json &blockData)
+{
   json txData = bitcoinCore.GetRawTransaction(txid);
   int index = 0;
-  std::string prevAddress;
   /* coinbase인 경우 */
-  if (txData["vin"][0].contains("coinbase")) {
-    for (auto &vout : txData["vout"]) {
-      if (!vout["scriptPubKey"]["address"].is_null()) {
+  if (txData["vin"][0].contains("coinbase"))
+  {
+    for (auto &vout : txData["vout"])
+    {
+      if (!vout["scriptPubKey"]["address"].is_null())
+      {
         std::string address = vout["scriptPubKey"]["address"];
-        if (prevAddress == address) break;
-        prevAddress = address;
-        json walletData = mongo.GetWalletData(address);
-        /* 신규 address */
-        if (walletData.is_null()) {
-          StoreNewWallet(address, blockData, txData);
-        } else {
-          UpdateWallet(walletData, blockData, txData);
-        }
       }
     }
   }
   /* coinbase가 아닌 경우 */
-  else {
+  else
+  {
     /* vin 데이터 처리 부분 */
-    for (auto &vin : txData["vin"]) {
+    for (auto &vin : txData["vin"])
+    {
       std::string txid = vin["txid"];
       int preN = vin["vout"];
       json preTx = bitcoinCore.GetRawTransaction('"' + txid + '"');
-      if (!preTx["vout"][preN]["address"].is_null()) {
+      if (!preTx["vout"][preN]["address"].is_null())
+      {
         std::string address = preTx["vout"][preN]["address"];
-        if (prevAddress == address) break;
-        prevAddress = address;
-        json walletData = mongo.GetWalletData(address);
-        if (walletData.is_null()) {
-          // MakeNewInputWallet()
-        } else {
-          UpdateWallet(walletData, blockData, txData);
-        }
       }
     }
     /* vout 데이터 처리 */
-    for (auto &vout : txData["vout"]) {
-      if (!vout["scriptPubKey"]["address"].is_null()) {
+    for (auto &vout : txData["vout"])
+    {
+      if (!vout["scriptPubKey"]["address"].is_null())
+      {
         std::string address = vout["scriptPubKey"]["address"];
-        if (prevAddress == address) break;
-        prevAddress = address;
-        json walletData = mongo.GetWalletData(address);
-        /* 신규 address */
-        if (walletData.is_null()) {
-          StoreNewWallet(address, blockData, txData);
-        } else {
-          UpdateWallet(walletData, blockData, txData);
-        }
       }
     }
   }
 }
 
 void ProcessData::StoreNewWallet(std::string &address, json &blockData,
-                                 json &txData) {
+                                 json &txData)
+{
   json data;
   int n_unredeemed = 0;
   long long received = 0;
 
-  for (auto &vout : txData["vout"]) {
+  for (auto &vout : txData["vout"])
+  {
     if (!vout["scriptPubKey"]["address"].is_null() &&
-        vout["scriptPubKey"]["address"] == address) {
+        vout["scriptPubKey"]["address"] == address)
+    {
       n_unredeemed++;
       received += (long long)vout["value"];
     }
@@ -91,12 +78,13 @@ void ProcessData::StoreNewWallet(std::string &address, json &blockData,
   data["total_sent"] = 0;
   data["final_balance"] = received;
   data["txs"].push_back(MakeTxData(address, blockData, txData));
-  mongo.StoreWalletData(data);
 }
 
 void ProcessData::UpdateWallet(json &walletData, json &blockData,
-                               json &txData) {
-  if (walletData["txs"][0]["txid"] == txData["txid"]) return;
+                               json &txData)
+{
+  if (walletData["txs"][0]["txid"] == txData["txid"])
+    return;
   std::string address = walletData["address"];
   json updateData;
   int n_unredeemed;
@@ -108,9 +96,12 @@ void ProcessData::UpdateWallet(json &walletData, json &blockData,
   updateData["txs"].insert(updateData["txs"].begin(), newTx);
   updateData["n_tx"] = (int)walletData["n_tx"] + 1;
 
-  if (!newTx.contains("coinbase")) {
-    for (auto &input : newTx["inputs"]) {
-      if (input["prev_out"]["addr"] == address) {
+  if (!newTx.contains("coinbase"))
+  {
+    for (auto &input : newTx["inputs"])
+    {
+      if (input["prev_out"]["addr"] == address)
+      {
         n_unredeemed--;
         sent += (long long)input["prev_out"]["value"];
         InputSpentData(updateData, input["txid"], input["prev_out"]["n"],
@@ -118,9 +109,11 @@ void ProcessData::UpdateWallet(json &walletData, json &blockData,
       }
     }
   }
-  for (auto &vout : txData["vout"]) {
+  for (auto &vout : txData["vout"])
+  {
     if (!vout["scriptPubKey"]["address"].is_null() &&
-        vout["scriptPubKey"]["address"] == address) {
+        vout["scriptPubKey"]["address"] == address)
+    {
       n_unredeemed++;
       received += (long long)vout["value"];
     }
@@ -131,12 +124,11 @@ void ProcessData::UpdateWallet(json &walletData, json &blockData,
       (long long)walletData["total_received"] + received;
   updateData["total_sent"] = (long long)walletData["total_sent"] + sent;
   updateData["final_balance"] = updateData["txs"][0]["balance"];
-
-  mongo.UpdateWalletData(walletData["_id"].dump(), updateData);
 }
 
 json ProcessData::MakeTxData(std::string &address, json &blockData,
-                             json &txData, long long prevBalance) {
+                             json &txData, long long prevBalance)
+{
   json txDoc;
   long long inputValue, outValue, fee, result;
   inputValue = outValue = fee = result = 0;
@@ -153,11 +145,15 @@ json ProcessData::MakeTxData(std::string &address, json &blockData,
   int index = 0;
   /* vin 처리 */
   json inputData;
-  for (auto &vin : txData["vin"]) {
-    if (vin.contains("coinbase")) {
+  for (auto &vin : txData["vin"])
+  {
+    if (vin.contains("coinbase"))
+    {
       inputData["coinbase"] = vin["coinbase"];
       inputData["sequence"] = vin["sequence"];
-    } else {
+    }
+    else
+    {
       inputData = MakeInputData(vin, index);
       inputValue += (long long)inputData["prev_out"]["value"];
       if (!inputData["prev_out"]["addr"].is_null() &&
@@ -169,7 +165,8 @@ json ProcessData::MakeTxData(std::string &address, json &blockData,
   }
 
   /* vout 처리 */
-  for (auto &vout : txData["vout"]) {
+  for (auto &vout : txData["vout"])
+  {
     txDoc["outputs"].push_back(MakeOutputData(vout));
     outValue += (long long)vout["value"];
     if (!vout["scriptPubKey"]["address"].is_null() &&
@@ -185,7 +182,8 @@ json ProcessData::MakeTxData(std::string &address, json &blockData,
   return txDoc;
 }
 
-json ProcessData::MakeInputData(json &txInput, int index) {
+json ProcessData::MakeInputData(json &txInput, int index)
+{
   json input;
   input["sequence"] = txInput["sequence"];
   input["txid"] = txInput["txid"];
@@ -195,7 +193,8 @@ json ProcessData::MakeInputData(json &txInput, int index) {
   return input;
 }
 
-json ProcessData::MakeOutputData(json &txOutput) {
+json ProcessData::MakeOutputData(json &txOutput)
+{
   json output;
   output["spent"] = false;
   output["value"] = txOutput["value"];
@@ -209,7 +208,8 @@ json ProcessData::MakeOutputData(json &txOutput) {
   return output;
 }
 
-json ProcessData::GetPrevData(std::string txid, int n) {
+json ProcessData::GetPrevData(std::string txid, int n)
+{
   json preTx = bitcoinCore.GetRawTransaction('"' + txid + '"')["vout"][n];
   json preData;
   if (!preTx["scriptPubKey"]["address"].is_null())
@@ -224,9 +224,12 @@ json ProcessData::GetPrevData(std::string txid, int n) {
 }
 
 void ProcessData::InputSpentData(json &updateData, std::string prevTxid,
-                                 int prevN, std::string txid, int index) {
-  for (auto &tx : updateData["txs"]) {
-    if (tx["txid"] == prevTxid) {
+                                 int prevN, std::string txid, int index)
+{
+  for (auto &tx : updateData["txs"])
+  {
+    if (tx["txid"] == prevTxid)
+    {
       json prevData;
       prevData["txid"] = txid;
       prevData["n"] = index;

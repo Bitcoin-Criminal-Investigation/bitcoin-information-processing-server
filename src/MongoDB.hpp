@@ -5,6 +5,7 @@
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
 #include <nlohmann/json.hpp>
+#include <optional>
 
 using json = nlohmann::json;
 class MongoDB
@@ -14,6 +15,9 @@ public:
   ~MongoDB();
   static void Instance();
   json getProfile(std::string target);
+  std::optional<json> clusterFindById(std::string target);
+  std::optional<json> clusterFindByName(std::string target);
+
   // void CreateIndexes();
   // void UpdateHeight(int);
   // int GetSavedHeight();

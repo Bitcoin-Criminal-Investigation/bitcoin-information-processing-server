@@ -22,6 +22,29 @@ json MongoDB::getProfile(std::string target)
   }
 }
 
+std::optional<json> MongoDB::clusterFindById(std::string target)
+{
+  auto oid = bsoncxx::types::b_oid{bsoncxx::oid(target)};
+  auto result = clusters.find_one(make_document(kvp("_id", oid)));
+  if (result)
+    return json::parse(bsoncxx::to_json(*result));
+  else
+  {
+    return std::nullopt;
+  }
+}
+
+std::optional<json> MongoDB::clusterFindByName(std::string target)
+{
+  auto result = clusters.find_one(make_document(kvp("name", target)));
+  if (result)
+    return json::parse(bsoncxx::to_json(*result));
+  else
+  {
+    return std::nullopt;
+  }
+}
+
 // void MongoDB::CreateIndexes() {
 //   auto result = walletCol.find_one({});
 //   if (result)

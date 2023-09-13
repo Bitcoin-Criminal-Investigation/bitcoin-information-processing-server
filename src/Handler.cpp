@@ -32,11 +32,12 @@ void Handler::handle_get(const http_request &request,
       utility::string_t hash = find->second;
       try
       {
-        std::string raw = processApi.getTxData(hash);
+        std::string raw = processApi.getWalletData(hash);
         response = from_string(raw);
       }
       catch (std::exception e)
       {
+        std::cout << "error" << std::endl;
         request.reply(status_codes::BadRequest);
       }
     }
@@ -54,8 +55,8 @@ void Handler::handle_get(const http_request &request,
       utility::string_t hash = find->second;
       try
       {
-        std::string test = processApi.getTxData(hash);
-        response = from_string(test);
+        std::string raw = processApi.getTxData(hash);
+        response = from_string(raw);
       }
       catch (std::exception e)
       {
@@ -70,14 +71,14 @@ void Handler::handle_get(const http_request &request,
   else if (path == U("/info/cluster"))
   {
     auto query_map = uri::split_query(request.relative_uri().query());
-    auto find = query_map.find(U("hash"));
+    auto find = query_map.find(U("target"));
     if (query_map.end() != find)
     {
-      utility::string_t hash = find->second;
+      utility::string_t target = find->second;
       try
       {
-        std::string test = processApi.getTxData(hash);
-        response = from_string(test);
+        std::string raw = processApi.getClusterData(target);
+        response = from_string(raw);
       }
       catch (std::exception e)
       {

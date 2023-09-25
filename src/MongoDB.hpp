@@ -14,9 +14,10 @@ public:
   MongoDB(const std::string &url);
   ~MongoDB();
   static void Instance();
-  json getProfile(std::string target);
-  std::optional<json> clusterFindById(std::string target);
-  std::optional<json> clusterFindByName(std::string target);
+  json getProfile(const std::string &target);
+  std::optional<json> clusterFindById(const std::string &target);
+  std::optional<json> clusterFindByName(const std::string &target);
+  json clusterFindByAddr(const std::string &addr);
 
   // void CreateIndexes();
   // void UpdateHeight(int);

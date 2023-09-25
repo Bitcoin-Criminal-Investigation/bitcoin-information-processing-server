@@ -4,14 +4,14 @@
 #include <nlohmann/json.hpp>
 #include <cpprest/http_listener.h>
 #include <cpprest/json.h>
-#include <future>
-#include <mutex>
-#include <atomic>
-#include <thread>
+// #include <future>
+// #include <mutex>
+// #include <atomic>
+// #include <thread>
+// #include <ctime>
 #include <chrono>
-#include <thread>
-#include <ctime>
 #include <regex>
+#include <deque>
 #include "MongoDB.hpp"
 #include "BitcoinCore.hpp"
 using json = nlohmann::json;
@@ -24,6 +24,7 @@ public:
              blocksci::Blockchain &chain);
   std::string getTxData(const utility::string_t &input);
   std::string getWalletData(const utility::string_t &req);
+  std::string getTxInWallet(const std::string &hash, const time_t &startDate, const time_t &endDate);
   std::string getClusterData(const utility::string_t &req);
 
 private:
@@ -33,7 +34,7 @@ private:
   json MakeInputData(blocksci::Input input);
   json MakeOutputData(blocksci::Output output);
   std::string onlyAddress(const std::string &fullString);
-  void addTxToVector(json &tx, std::vector<json> &vec, std::mutex &vec_mutex);
+  // void addTxToVector(json &tx, std::vector<json> &vec, std::mutex &vec_mutex);
 };
 
 #endif

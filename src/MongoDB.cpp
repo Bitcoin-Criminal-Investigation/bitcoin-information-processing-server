@@ -4,15 +4,13 @@ using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_array;
 using bsoncxx::builder::basic::make_document;
 
-MongoDB::MongoDB(const std::string &url) : client{mongocxx::uri{url}}
+MongoDB::MongoDB(const std::string &uri) : client{mongocxx::uri{uri}}
 {
   db = client["btds"];
-  profiles = db["profiles"];
-  flags = db["flags"];
-  clusters = db["clusters"];
 }
 json MongoDB::getProfile(const std::string &target)
 {
+  auto profiles = db["profiles"];
   auto result = profiles.find_one(make_document(kvp("target", target)));
   if (result)
     return json::parse(bsoncxx::to_json(*result));
@@ -24,6 +22,7 @@ json MongoDB::getProfile(const std::string &target)
 
 std::optional<json> MongoDB::clusterFindById(const std::string &target)
 {
+  auto clusters = db["clusters"];
   auto oid = bsoncxx::types::b_oid{bsoncxx::oid(target)};
   auto result = clusters.find_one(make_document(kvp("_id", oid)));
   if (result)
@@ -38,6 +37,7 @@ std::optional<json> MongoDB::clusterFindById(const std::string &target)
 
 std::optional<json> MongoDB::clusterFindByName(const std::string &target)
 {
+  auto clusters = db["clusters"];
   auto result = clusters.find_one(make_document(kvp("name", target)));
   if (result)
     return json::parse(bsoncxx::to_json(*result));
@@ -49,6 +49,7 @@ std::optional<json> MongoDB::clusterFindByName(const std::string &target)
 
 json MongoDB::clusterFindByAddr(const std::string &addr)
 {
+  auto clusters = db["clusters"];
   auto doc = make_document(kvp("address",
                                make_document(
                                    kvp("$elemMatch",

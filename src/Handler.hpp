@@ -11,11 +11,9 @@ class Handler : public http_listener
 {
 public:
         Handler() = default;
-        Handler(const utility::string_t &url, MongoDB &mongo,
-                BitcoinCore &bitcoinCore, blocksci::Blockchain &chain);
-        Handler(const utility::string_t &url, MongoDB &mongo,
-                BitcoinCore &bitcoinCore, blocksci::Blockchain &chain,
-                http_listener_config &config);
+        Handler(const utility::string_t &url, blocksci::Blockchain &chain, const std::string &mongoUri);
+        Handler(const utility::string_t &url, blocksci::Blockchain &chain,
+                http_listener_config &config, const std::string &mongoUri);
 
 private:
         ProcessApi processApi;

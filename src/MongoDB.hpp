@@ -11,7 +11,7 @@ using json = nlohmann::json;
 class MongoDB
 {
 public:
-  MongoDB(const std::string &url);
+  MongoDB(const std::string &uri);
   ~MongoDB();
   static void Instance();
   json getProfile(const std::string &target);
@@ -29,9 +29,6 @@ public:
 private:
   mongocxx::client client;
   mongocxx::database db;
-  mongocxx::collection profiles;
-  mongocxx::collection flags;
-  mongocxx::collection clusters;
 };
 
 #endif

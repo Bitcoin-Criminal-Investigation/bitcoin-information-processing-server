@@ -2,9 +2,7 @@
 
 #include <iostream>
 
-ProcessApi::ProcessApi(MongoDB &mongo, BitcoinCore &bitcoinCore,
-                       blocksci::Blockchain &chain)
-    : mongo(mongo), bitcoinCore(bitcoinCore), chain(chain) {}
+ProcessApi::ProcessApi(blocksci::Blockchain &chain, const std::string &mongoUri) : chain(chain), mongoUri(mongoUri) {}
 
 std::string ProcessApi::getTxData(const utility::string_t &req)
 {
@@ -12,6 +10,7 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
     try
     {
         blocksci::Transaction tx(hash, chain.getAccess());
+        MongoDB mongo(mongoUri);
         json res;
         auto block = tx.block();
         auto inputs = tx.inputs();
@@ -31,10 +30,7 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
         fee = inputValue = outputValue = 0;
         if (tx.isCoinbase())
         {
-            for (const auto &input : inputs)
-            {
-                res["inputs"].push_back({{"coinbase", true}, {"sequence", input.sequenceNumber()}});
-            }
+            res["inputs"] = json::array();
         }
         else
         {
@@ -53,7 +49,6 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
         res["input_value"] = std::move(inputValue);
         res["output_value"] = std::move(outputValue);
         res["fee"] = inputValue == 0 ? 0 : inputValue - outputValue;
-
         res["profile"] = mongo.getProfile(hash);
         return res.dump();
     }
@@ -65,22 +60,19 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
 
 std::string ProcessApi::getWalletData(const utility::string_t &req)
 {
-    clock_t start, finish;
-    double duration;
     std::string hash = utility::conversions::to_utf8string(req);
     auto address = blocksci::getAddressFromString(hash, chain.getAccess());
     if (!address)
     {
         throw std::runtime_error("Invalid address");
     }
-
+    MongoDB mongo(mongoUri);
     json res;
     auto viewTxs = address->getTransactions();
     auto viewInputTxs = address->getInputTransactions();
     uint64_t total_sent = 0, total_received = 0, n_tx = 0, n_sent_tx = 0, n_rcv_tx = 0;
     time_t last_sent_time = 0, last_recv_time = 0;
 
-    start = clock();
     for (const auto &tx : viewTxs)
     {
         int64_t localSentValue = 0, localReceivedValue = 0;
@@ -123,11 +115,8 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
         ++n_tx;
     }
 
-    finish = clock();
-    duration = (double)(finish - start) / CLOCKS_PER_SEC;
-    std::cout << "완료 : " << duration << "초" << std::endl;
-
     res["addr"] = hash;
+    res["format"] = address->fullType().substr(11);
     res["n_tx"] = n_tx;
     res["n_sent_tx"] = n_sent_tx;
     res["n_rcv_tx"] = n_rcv_tx;
@@ -152,7 +141,6 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
     res["final_balance"] = total_received - total_sent;
     res["cluster"] = mongo.clusterFindByAddr(hash);
     res["profile"] = mongo.getProfile(hash);
-
     return res.dump();
 }
 
@@ -195,6 +183,7 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
         txQue.push_front(std::move(txDoc));
     };
 
+    res["n_tx"] = txQue.size();
     res["txs"] = txQue;
 
     return res.dump();
@@ -202,6 +191,7 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
 
 std::string ProcessApi::getClusterData(const utility::string_t &req)
 {
+    MongoDB mongo(mongoUri);
     std::string target = utility::conversions::to_utf8string(req);
     std::optional<json> maybeResult;
     std::regex hexPattern("^[0-9a-fA-F]{24}$");
@@ -221,7 +211,7 @@ std::string ProcessApi::getClusterData(const utility::string_t &req)
     res["date_created"] = rawData["metadata"]["date_created"];
     res["date_last_modified"] = rawData["metadata"]["date_last_modified"];
     res["last_modifier"] = rawData["metadata"]["last_modifier"];
-    res["profile"] = mongo.getProfile(rawData["_id"]["$oid"]);
+    // res["profile"] = mongo.getProfile(rawData["_id"]["$oid"]);
     for (const auto &addr : rawData["address"])
     {
         json doc;
@@ -294,6 +284,7 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
         throw std::runtime_error("Invalid address");
     }
 
+    MongoDB mongo(mongoUri);
     std::cout << address->calculateBalance(-1) << std::endl;
 
     json res;

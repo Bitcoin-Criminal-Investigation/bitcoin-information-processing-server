@@ -2,95 +2,86 @@
 
 #include <iostream>
 
-Handler::Handler(const utility::string_t &url, MongoDB &mongo,
-                 BitcoinCore &bitcoinCore,
-                 blocksci::Blockchain &chain)
-    : http_listener(url), processApi(mongo, bitcoinCore, chain)
+// Handler::Handler(const utility::string_t &url, blocksci::Blockchain &chain)
+//     : http_listener(url), processApi(chain)
+// {
+//   support(std::bind(&Handler::handle_request, this, std::placeholders::_1));
+// }
+
+Handler::Handler(const utility::string_t &url,
+                 blocksci::Blockchain &chain, const std::string &mongoUri)
+    : http_listener(url), processApi(chain, mongoUri)
 {
   support(std::bind(&Handler::handle_request, this, std::placeholders::_1));
 }
 
-Handler::Handler(const utility::string_t &url, MongoDB &mongo,
-                 BitcoinCore &bitcoinCore,
-                 blocksci::Blockchain &chain,
-                 http_listener_config &config)
-    : http_listener(url, config), processApi(mongo, bitcoinCore, chain)
+Handler::Handler(const utility::string_t &url, blocksci::Blockchain &chain,
+                 http_listener_config &config, const std::string &mongoUri)
+    : http_listener(url, config), processApi(chain, mongoUri)
 {
   support(std::bind(&Handler::handle_request, this, std::placeholders::_1));
 }
 
 /* GET Method 처리 */
-void Handler::handle_get(const http_request &request,
-                         const utility::string_t &path)
+void Handler::handle_get(const http_request &request, const utility::string_t &path)
 {
   json::value response;
+  utility::string_t query_param;
+  std::string raw;
+
+  auto query_map = uri::split_query(request.relative_uri().query());
+
   if (path == U("/info/addr"))
   {
-    auto query_map = uri::split_query(request.relative_uri().query());
-    auto find = query_map.find(U("hash"));
-    if (query_map.end() != find)
-    {
-      utility::string_t hash = find->second;
-      try
-      {
-        std::string raw = processApi.getWalletData(hash);
-        response = from_string(raw);
-      }
-      catch (std::exception e)
-      {
-        std::cout << "error" << std::endl;
-        request.reply(status_codes::BadRequest);
-      }
-    }
-    else
-    {
-      request.reply(status_codes::BadRequest);
-    }
+    query_param = U("hash");
   }
   else if (path == U("/info/txid"))
   {
-    auto query_map = uri::split_query(request.relative_uri().query());
-    auto find = query_map.find(U("hash"));
-    if (query_map.end() != find)
-    {
-      utility::string_t hash = find->second;
-      try
-      {
-        std::string raw = processApi.getTxData(hash);
-        response = from_string(raw);
-      }
-      catch (std::exception e)
-      {
-        request.reply(status_codes::BadRequest);
-      }
-    }
-    else
-    {
-      request.reply(status_codes::BadRequest);
-    }
+    query_param = U("hash");
   }
   else if (path == U("/info/cluster"))
   {
-    auto query_map = uri::split_query(request.relative_uri().query());
-    auto find = query_map.find(U("target"));
-    if (query_map.end() != find)
+    query_param = U("target");
+  }
+  else
+  {
+    request.reply(status_codes::NotFound);
+    return;
+  }
+
+  auto find = query_map.find(query_param);
+  if (query_map.end() != find)
+  {
+    utility::string_t value = find->second;
+    try
     {
-      utility::string_t target = find->second;
-      try
+      if (path == U("/info/addr"))
       {
-        std::string raw = processApi.getClusterData(target);
-        response = from_string(raw);
+        raw = processApi.getWalletData(value);
       }
-      catch (std::exception e)
+      else if (path == U("/info/txid"))
       {
-        request.reply(status_codes::BadRequest);
+        raw = processApi.getTxData(value);
       }
+      else if (path == U("/info/cluster"))
+      {
+        raw = processApi.getClusterData(value);
+      }
+      response = from_string(raw);
     }
-    else
+    catch (std::exception e)
     {
-      request.reply(status_codes::BadRequest);
+      std::cout << e.what() << std::endl;
+      request.reply(status_codes::BadRequest, e.what());
+      return;
     }
   }
+  else
+  {
+    request.reply(status_codes::BadRequest, U("Query string not found."));
+    return;
+  }
+
   request.reply(status_codes::OK, response);
 }
 

@@ -69,10 +69,9 @@ void Handler::handle_get(const http_request &request, const utility::string_t &p
       }
       response = from_string(raw);
     }
-    catch (std::exception e)
+    catch(const std::runtime_error& e)
     {
-      std::cout << e.what() << std::endl;
-      request.reply(status_codes::BadRequest, e.what());
+      request.reply(status_codes::BadRequest, U(e.what()));
       return;
     }
   }
@@ -124,7 +123,7 @@ void Handler::handle_post(const http_request &request,
                     json::value response = this->from_string(raw);
                     return request.reply(status_codes::OK, response);
                   } 
-                  catch(const std::exception& e) 
+                  catch(const std::runtime_error& e) 
                   {
                     return request.reply(status_codes::BadRequest, U(e.what()));
                   } });

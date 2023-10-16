@@ -54,7 +54,11 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
     }
     catch (const std::exception &e)
     {
-        throw e;
+        throw std::runtime_error(e.what());
+    }
+    catch (...) 
+    {
+        throw std::runtime_error("Unknown exception occurred!");
     }
 }
 
@@ -87,7 +91,6 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
                 localSentValue += input.getValue();
             }
         }
-
         for (const auto &output : tx.outputs())
         {
             if (output.getAddress() == *address)
@@ -99,7 +102,6 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
 
         total_sent += localSentValue;
         total_received += localReceivedValue;
-
         if (sent)
         {
             if (last_sent_time < timestamp)
@@ -116,7 +118,7 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
     }
 
     res["addr"] = hash;
-    res["format"] = address->fullType().substr(11);
+    res["format"] = address->fullType();
     res["n_tx"] = n_tx;
     res["n_sent_tx"] = n_sent_tx;
     res["n_rcv_tx"] = n_rcv_tx;

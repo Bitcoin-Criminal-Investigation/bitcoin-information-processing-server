@@ -18,6 +18,7 @@ public:
   std::string getWalletData(const utility::string_t &req);
   std::string getTxInWallet(const std::string &hash, const time_t &startDate, const time_t &endDate);
   std::string getClusterData(const utility::string_t &req);
+  std::string clusterTest(const utility::string_t &req);
 
 private:
   blocksci::Blockchain &chain;

@@ -431,3 +431,25 @@ void ProcessApi::addTxToVector(json &tx, std::vector<json> &vec, std::mutex &vec
     vec.push_back(std::move(tx));
 }
 */
+
+std::string ProcessApi::clusterTest(const utility::string_t &req)
+{
+    std::string hash = utility::conversions::to_utf8string(req);
+    auto address = blocksci::getAddressFromString(hash, chain.getAccess());
+    if (!address)
+    {
+        throw std::runtime_error("Invalid address");
+    }
+    blocksci::ClusterManager cm("/home/bitcoin-core/.blocksci/cluster", chain.getAccess());
+    auto cluster = cm.getCluster(*address);
+    auto addresses = cluster.getAddresses();     
+    for (const auto &address : addresses)
+    {
+        std::cout<< onlyAddress(address.toString()) << std::endl;
+    }
+    
+    json res;
+    res["result"] = "sucess";
+
+    return res.dump();
+}

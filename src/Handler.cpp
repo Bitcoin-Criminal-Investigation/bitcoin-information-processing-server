@@ -43,6 +43,10 @@ void Handler::handle_get(const http_request &request, const utility::string_t &p
   {
     query_param = U("target");
   }
+  else if (path == U("/cluster"))
+  {
+    query_param = U("hash");
+  } 
   else
   {
     request.reply(status_codes::NotFound);
@@ -66,6 +70,10 @@ void Handler::handle_get(const http_request &request, const utility::string_t &p
       else if (path == U("/info/cluster"))
       {
         raw = processApi.getClusterData(value);
+      }
+      else if (path == U("/cluster"))
+      {
+         raw = processApi.clusterTest(value);
       }
       response = from_string(raw);
     }

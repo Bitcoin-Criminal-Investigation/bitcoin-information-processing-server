@@ -274,6 +274,99 @@ std::string ProcessApi::onlyAddress(const std::string &fullString)
     return fullString.substr(fullString.find(delimiter) + 1, fullString.size() - fullString.find(delimiter) - 2);
 }
 
+std::string ProcessApi::clusterTest(const utility::string_t &req)
+{
+    std::string hash = utility::conversions::to_utf8string(req);
+    auto address = blocksci::getAddressFromString(hash, chain.getAccess());
+    if (!address)
+    {
+        throw std::runtime_error("Invalid address");
+    }
+
+    blocksci::ClusterManager cm("/home/bitcoin-core/.blocksci/cluster", chain.getAccess());
+    auto cluster = cm.getCluster(*address);
+    auto addresses = cluster.getAddresses();     
+    json res;
+    for (const auto &address : addresses)
+    {
+        res["result"].push_back(onlyAddress(address.toString()));
+    }
+    return res.dump();
+}
+
+std::string ProcessApi::heuristicTest(const utility::string_t &req)
+{
+    json res;
+    std::string hash = utility::conversions::to_utf8string(req);
+    blocksci::Transaction tx(hash, chain.getAccess());
+    res["result"] = determineChangeAddresses(tx);
+
+    return res.dump();
+}
+
+std::vector<std::string> ProcessApi::determineChangeAddresses(const blocksci::Transaction &tx) {
+
+    std::unordered_map<blocksci::Output, int> outputScores;
+    std::vector<std::string> noChnageAddress;
+    blocksci::heuristics::PeelingChainChange peelingChainChange;
+    blocksci::heuristics::PowerOfTenChange powerOfTenChange(6); // `6`은 10의 거듭제곱의 자릿수를 나타냅니다.
+    blocksci::heuristics::OptimalChangeChange optimalChangeChange;
+    blocksci::heuristics::AddressTypeChange addressTypeChange;
+    blocksci::heuristics::LocktimeChange locktimeChange;
+    blocksci::heuristics::AddressReuseChange addressReuseChange;
+    blocksci::heuristics::ClientChangeAddressBehaviorChange clientChangeBehaviorChange;
+    blocksci::heuristics::LegacyChange legacyChange;
+    blocksci::heuristics::FixedFee fixedFeeChange;
+    blocksci::heuristics::Spent spentChange;
+
+    for(const auto &output: tx.outputs()){
+        outputScores[output] = 0;
+    }
+
+    for (const auto &item : addressReuseChange(tx)) {
+        outputScores[item] += ADDRESS_REUSE_SCORE;
+    }
+    for (const auto &item : peelingChainChange(tx)) {
+        outputScores[item] += PEELING_CHAIN_SCORE;
+    }
+    for (const auto &item : powerOfTenChange(tx)) {
+        outputScores[item] += POWER_OF_TEN_SCORE;
+    }
+    for (const auto &item : optimalChangeChange(tx)) {
+        outputScores[item] += OPTIMAL_CHANGE_SCORE;
+    }
+    for (const auto &item : addressTypeChange(tx)) {
+        outputScores[item] += ADDRESS_TYPE_SCORE;
+    }
+    for (const auto &item : locktimeChange(tx)) {
+        outputScores[item] += LOCKTIME_SCORE;
+    }
+    for (const auto &item : clientChangeBehaviorChange(tx)) {
+        outputScores[item] += CLIENT_BEHAVIOR_SCORE;
+    }
+    for (const auto &item : legacyChange(tx)) {
+        outputScores[item] += LEGACY_SCORE;
+    }
+    for (const auto &item : fixedFeeChange(tx)) {
+        outputScores[item] += FIXED_FEE_SCORE;
+    }
+    for (const auto &item : spentChange(tx)) {
+        outputScores[item] += SPENT_SCORE;
+    }
+
+    for (const auto &pair : outputScores) {
+        if (pair.second < THRESHOLD_SCORE) {
+            noChnageAddress.push_back(onlyAddress(pair.first.getAddress().toString()));
+        }
+    }
+    
+    return noChnageAddress;
+}
+
+
+
+
+/* backup code */
 /*
 std::string ProcessApi::getWalletData(const utility::string_t &req)
 {
@@ -431,25 +524,3 @@ void ProcessApi::addTxToVector(json &tx, std::vector<json> &vec, std::mutex &vec
     vec.push_back(std::move(tx));
 }
 */
-
-std::string ProcessApi::clusterTest(const utility::string_t &req)
-{
-    std::string hash = utility::conversions::to_utf8string(req);
-    auto address = blocksci::getAddressFromString(hash, chain.getAccess());
-    if (!address)
-    {
-        throw std::runtime_error("Invalid address");
-    }
-    blocksci::ClusterManager cm("/home/bitcoin-core/.blocksci/cluster", chain.getAccess());
-    auto cluster = cm.getCluster(*address);
-    auto addresses = cluster.getAddresses();     
-    for (const auto &address : addresses)
-    {
-        std::cout<< onlyAddress(address.toString()) << std::endl;
-    }
-    
-    json res;
-    res["result"] = "sucess";
-
-    return res.dump();
-}

@@ -6,8 +6,23 @@
 #include <cpprest/json.h>
 #include <regex>
 #include <deque>
+#include <unordered_map>
+#include <vector>
 #include "MongoDB.hpp"
 using json = nlohmann::json;
+
+const int THRESHOLD_SCORE = 8;
+
+const int PEELING_CHAIN_SCORE = 3;
+const int POWER_OF_TEN_SCORE = 2;
+const int OPTIMAL_CHANGE_SCORE = 2;
+const int ADDRESS_TYPE_SCORE = 1;
+const int LOCKTIME_SCORE = 1;
+const int ADDRESS_REUSE_SCORE = 3;
+const int CLIENT_BEHAVIOR_SCORE = 2;
+const int LEGACY_SCORE = 1;
+const int FIXED_FEE_SCORE = 1;
+const int SPENT_SCORE = 1;
 
 class ProcessApi
 {
@@ -19,6 +34,7 @@ public:
   std::string getTxInWallet(const std::string &hash, const time_t &startDate, const time_t &endDate);
   std::string getClusterData(const utility::string_t &req);
   std::string clusterTest(const utility::string_t &req);
+  std::string heuristicTest(const utility::string_t &req);
 
 private:
   blocksci::Blockchain &chain;
@@ -26,6 +42,7 @@ private:
   json MakeInputData(blocksci::Input input);
   json MakeOutputData(blocksci::Output output);
   std::string onlyAddress(const std::string &fullString);
+  std::vector<std::string> determineChangeAddresses(const blocksci::Transaction &tx);
 };
 
 #endif

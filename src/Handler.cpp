@@ -47,6 +47,10 @@ void Handler::handle_get(const http_request &request, const utility::string_t &p
   {
     query_param = U("hash");
   } 
+  else if (path == U("/heuristic"))
+  {
+    query_param = U("hash");
+  } 
   else
   {
     request.reply(status_codes::NotFound);
@@ -73,7 +77,11 @@ void Handler::handle_get(const http_request &request, const utility::string_t &p
       }
       else if (path == U("/cluster"))
       {
-         raw = processApi.clusterTest(value);
+        raw = processApi.clusterTest(value);
+      }
+      else if (path == U("/heuristic"))
+      {
+        raw = processApi.heuristicTest(value);
       }
       response = from_string(raw);
     }

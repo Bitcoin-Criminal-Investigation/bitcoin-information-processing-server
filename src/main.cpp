@@ -19,7 +19,7 @@ void signalHandler(int signum)
 int main()
 {
   MongoDB::Instance();
-  std::string mongoUri = "mongodb://localhost:27017";
+  std::string mongoUri = "mongodb://mongodb:kit20232023@localhost:27018";
   blocksci::Blockchain chain("/home/bitcoin-core/.blocksci/config.json");
   utility::string_t url = U("http://0.0.0.0:7776");
   Handler listener(url, chain, mongoUri);

@@ -7,9 +7,18 @@ ProcessApi::ProcessApi(blocksci::Blockchain &chain, const std::string &mongoUri)
 std::string ProcessApi::getTxData(const utility::string_t &req)
 {
     std::string hash = utility::conversions::to_utf8string(req);
+    blocksci::Transaction tx;
     try
     {
-        blocksci::Transaction tx(hash, chain.getAccess());
+        tx = blocksci::Transaction(hash, chain.getAccess());
+    }
+    catch(const std::exception &e)
+    {
+        throw InvalidHash("Invalid Transaction hash");
+    }
+
+    try
+    {
         MongoDB mongo(mongoUri);
         json res;
         auto block = tx.block();
@@ -26,6 +35,7 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
         res["time"] = block.timestamp();
         res["ver"] = tx.getVersion();
         res["lock_time"] = tx.locktime();
+        res["true_recipient"] = determineChangeAddresses(tx);
 
         fee = inputValue = outputValue = 0;
         if (tx.isCoinbase())
@@ -54,7 +64,7 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
     }
     catch (const std::exception &e)
     {
-        throw std::runtime_error(e.what());
+        throw;
     }
     catch (...) 
     {
@@ -68,7 +78,7 @@ std::string ProcessApi::getWalletData(const utility::string_t &req)
     auto address = blocksci::getAddressFromString(hash, chain.getAccess());
     if (!address)
     {
-        throw std::runtime_error("Invalid address");
+        throw InvalidHash("Invalid address");
     }
     MongoDB mongo(mongoUri);
     json res;
@@ -151,7 +161,7 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
     auto address = blocksci::getAddressFromString(hash, chain.getAccess());
     if (!address)
     {
-        throw std::runtime_error("Invalid address");
+        throw InvalidHash("Invalid address");
     }
     json res;
     auto viewTxs = address->getTransactions();
@@ -274,13 +284,13 @@ std::string ProcessApi::onlyAddress(const std::string &fullString)
     return fullString.substr(fullString.find(delimiter) + 1, fullString.size() - fullString.find(delimiter) - 2);
 }
 
-std::string ProcessApi::clusterTest(const utility::string_t &req)
+std::string ProcessApi::getClusterResult(const utility::string_t &req)
 {
     std::string hash = utility::conversions::to_utf8string(req);
     auto address = blocksci::getAddressFromString(hash, chain.getAccess());
     if (!address)
     {
-        throw std::runtime_error("Invalid address");
+        throw InvalidHash("Invalid address");
     }
 
     blocksci::ClusterManager cm("/home/bitcoin-core/.blocksci/cluster", chain.getAccess());
@@ -289,19 +299,26 @@ std::string ProcessApi::clusterTest(const utility::string_t &req)
     json res;
     for (const auto &address : addresses)
     {
-        res["result"].push_back(onlyAddress(address.toString()));
+        res["addresses"].push_back(onlyAddress(address.toString()));
     }
     return res.dump();
 }
 
-std::string ProcessApi::heuristicTest(const utility::string_t &req)
+std::string ProcessApi::getHeuristicResult(const utility::string_t &req)
 {
     json res;
     std::string hash = utility::conversions::to_utf8string(req);
-    blocksci::Transaction tx(hash, chain.getAccess());
-    res["result"] = determineChangeAddresses(tx);
 
-    return res.dump();
+    try
+    {
+        blocksci::Transaction tx(hash, chain.getAccess());
+        res["addresses"] = determineChangeAddresses(tx);
+        return res.dump();
+    }
+    catch(const std::exception &e)
+    {
+        throw InvalidHash("Invalid Transaction Hash");
+    }
 }
 
 std::vector<std::string> ProcessApi::determineChangeAddresses(const blocksci::Transaction &tx) {

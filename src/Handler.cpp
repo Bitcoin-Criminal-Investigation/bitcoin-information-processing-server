@@ -77,18 +77,24 @@ void Handler::handle_get(const http_request &request, const utility::string_t &p
       }
       else if (path == U("/cluster"))
       {
-        raw = processApi.clusterTest(value);
+        raw = processApi.getClusterResult(value);
       }
       else if (path == U("/heuristic"))
       {
-        raw = processApi.heuristicTest(value);
+        raw = processApi.getHeuristicResult(value);
       }
       response = from_string(raw);
     }
+    catch(const InvalidHash& e)
+    {
+      request.reply(status_codes::NotFound, U(e.what()));
+      return;
+    }
     catch(const std::runtime_error& e)
     {
-      request.reply(status_codes::BadRequest, U(e.what()));
+      request.reply(status_codes::InternalError, U(e.what()));
       return;
+
     }
   }
   else
@@ -111,70 +117,48 @@ void Handler::handle_post(const http_request &request,
       request.reply(status_codes::BadRequest, U("Expected JSON content-type."));
       return;
     }
-
     request.extract_json()
         .then([this, request](json::value json_val) -> pplx::task<void> // 반환 타입을 명시적으로 지정
               {
                   std::string hash;
                   time_t startDate, endDate;
 
-                  if(!json_val.has_field(U("hash")) || !json_val[U("hash")].is_string())
+                  if (!json_val.has_field(U("hash")) || !json_val[U("hash")].is_string())
                   {
                     return request.reply(status_codes::BadRequest, U("Missing or invalid 'hash'."));
                   }
-                  
+                  if (!json_val.has_field(U("start_date")) || !json_val[U("start_date")].is_integer())
+                  {
+                    return request.reply(status_codes::BadRequest, U("Missing or invalid 'start_date'."));
+                  }
+                  if (!json_val.has_field(U("end_date")) || !json_val[U("end_date")].is_integer())
+                  {
+                    return request.reply(status_codes::BadRequest, U("Missing or invalid 'end_date'."));
+                  }
                   hash = json_val[U("hash")].as_string();
-
-                  startDate = json_val.has_field(U("start_date")) && json_val[U("start_date")].is_integer() 
-                              ? static_cast<time_t>(json_val[U("start_date")].as_integer()) 
-                              : 1230940800;
-
-                  endDate = json_val.has_field(U("end_date")) && json_val[U("end_date")].is_integer()
-                            ? static_cast<time_t>(json_val[U("end_date")].as_integer()) 
-                            : std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                  startDate = static_cast<time_t>(json_val[U("start_date")].as_integer());
+                  endDate = static_cast<time_t>(json_val[U("end_date")].as_integer());
 
                   try 
                   {
                     std::string raw = this->processApi.getTxInWallet(hash, startDate, endDate);
                     json::value response = this->from_string(raw);
                     return request.reply(status_codes::OK, response);
-                  } 
+                  }
+                  catch(const InvalidHash& e)
+                  {
+                    return request.reply(status_codes::NotFound, U(e.what()));
+                  }
                   catch(const std::runtime_error& e) 
                   {
                     return request.reply(status_codes::BadRequest, U(e.what()));
-                  } });
+                  } 
+              });
   }
-  else if (path == U("/foo"))
+  else
   {
-    request.reply(status_codes::OK, U("POST /foo"));
-  }
-}
-
-/* PUT Method 처리 */
-void Handler::handle_put(const http_request &request,
-                         const utility::string_t &path)
-{
-  if (path == U("/foo/bar"))
-  {
-    request.reply(status_codes::OK, U("PUT /foo/bar"));
-  }
-  else if (path == U("/foo"))
-  {
-    request.reply(status_codes::OK, U("PUT /foo"));
-  }
-}
-
-/* DEL Method 처리 */
-void Handler::handle_del(const http_request &request,
-                         const utility::string_t &path)
-{
-  if (path == U("/foo/bar"))
-  {
-    request.reply(status_codes::OK, U("DELETE /foo/bar"));
-  }
-  else if (path == U("/foo"))
-  {
-    request.reply(status_codes::OK, U("DELETE /foo"));
+    request.reply(status_codes::NotFound);
+    return;
   }
 }
 

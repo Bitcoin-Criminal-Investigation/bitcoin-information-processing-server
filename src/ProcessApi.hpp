@@ -33,8 +33,8 @@ public:
   std::string getWalletData(const utility::string_t &req);
   std::string getTxInWallet(const std::string &hash, const time_t &startDate, const time_t &endDate);
   std::string getClusterData(const utility::string_t &req);
-  std::string clusterTest(const utility::string_t &req);
-  std::string heuristicTest(const utility::string_t &req);
+  std::string getClusterResult(const utility::string_t &req);
+  std::string getHeuristicResult(const utility::string_t &req);
 
 private:
   blocksci::Blockchain &chain;
@@ -43,6 +43,12 @@ private:
   json MakeOutputData(blocksci::Output output);
   std::string onlyAddress(const std::string &fullString);
   std::vector<std::string> determineChangeAddresses(const blocksci::Transaction &tx);
+};
+
+class InvalidHash : public std::runtime_error {
+public:
+    InvalidHash(const std::string& message)
+        : std::runtime_error(message) {}
 };
 
 #endif

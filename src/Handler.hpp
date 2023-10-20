@@ -18,9 +18,7 @@ public:
 private:
         ProcessApi processApi;
         void handle_get(const http_request &request, const utility::string_t &path);
-        void handle_put(const http_request &request, const utility::string_t &path);
         void handle_post(const http_request &request, const utility::string_t &path);
-        void handle_del(const http_request &request, const utility::string_t &path);
         void handle_request(http_request request);
         json::value from_string(const std::string &input);
         json::value from_string_t(const utility::string_t &input);

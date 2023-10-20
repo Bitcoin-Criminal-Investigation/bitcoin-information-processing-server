@@ -174,14 +174,6 @@ void Handler::handle_request(http_request request)
   {
     handle_post(request, path);
   }
-  else if (request.method() == methods::PUT)
-  {
-    handle_put(request, path);
-  }
-  else if (request.method() == methods::DEL)
-  {
-    handle_del(request, path);
-  }
   else
   {
     request.reply(status_codes::NotImplemented, U("Method not supported."));

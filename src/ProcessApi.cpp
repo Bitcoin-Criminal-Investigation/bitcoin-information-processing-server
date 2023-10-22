@@ -266,10 +266,10 @@ json ProcessApi::MakeOutputData(blocksci::Output output)
     auto spendingInput = output.getSpendingInput();
     if (spendingInput)
     {
-        json spender;
-        spender["txid"] = spendingInput->transaction().getHash().GetHex();
-        spender["n"] = spendingInput->inputIndex();
-        res["spender"] = spender;
+        json spending_outpoints;
+        spending_outpoints["txid"] = spendingInput->transaction().getHash().GetHex();
+        spending_outpoints["n"] = spendingInput->inputIndex();
+        res["spending_outpoints"] = spending_outpoints;
     }
     else
     {

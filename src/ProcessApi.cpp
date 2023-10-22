@@ -36,6 +36,7 @@ std::string ProcessApi::getTxData(const utility::string_t &req)
         res["ver"] = tx.getVersion();
         res["lock_time"] = tx.locktime();
         res["true_recipient"] = determineChangeAddresses(tx);
+        res["is_CoinJoin"] = blocksci::heuristics::isCoinjoin(tx);
 
         fee = inputValue = outputValue = 0;
         if (tx.isCoinbase())

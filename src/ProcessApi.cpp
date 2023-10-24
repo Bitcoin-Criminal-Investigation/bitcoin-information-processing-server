@@ -167,7 +167,7 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
     json res;
     auto viewTxs = address->getTransactions();
 
-    std::deque<json> txQue;
+    std::vector<json> txVector;
     int64_t localSentValue, localReceivedValue;
 
     for (const auto &tx : viewTxs)
@@ -193,11 +193,13 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
         txDoc["value"] = localReceivedValue - localSentValue;
         txDoc["fee"] = tx.fee();
         txDoc["index"] = tx.txNum;
-        txQue.push_front(std::move(txDoc));
+        txVector.push_back(std::move(txDoc));
     };
-
-    res["n_tx"] = txQue.size();
-    res["txs"] = txQue;
+    std::stable_sort(txVector.begin(), txVector.end(), [](const json& a, const json& b) {
+        return a["index"] > b["index"];
+    });
+    res["n_tx"] = txVector.size();
+    res["txs"] = txVector;
 
     return res.dump();
 }

@@ -180,6 +180,7 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
         localSentValue = localReceivedValue = 0;
         txDoc["txid"] = tx.getHash().GetHex();
         txDoc["timestamp"] = tx.block().timestamp();
+        txDoc["spending_outpoints"] = json::array();
         for (const auto &input : tx.inputs())
         {
             if (input.getAddress() == *address)
@@ -187,8 +188,13 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
         };
         for (const auto &output : tx.outputs())
         {
-            if (output.getAddress() == *address)
+            if (output.getAddress() == *address) {
                 localReceivedValue += output.getValue();
+                if(output.isSpent()) {
+                    txDoc["spending_outpoints"].push_back(output.getSpendingInput()->transaction().getHash().GetHex());
+                }
+            }
+                
         };
         txDoc["value"] = localReceivedValue - localSentValue;
         txDoc["fee"] = tx.fee();

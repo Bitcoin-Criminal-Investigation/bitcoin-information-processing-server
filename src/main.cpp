@@ -26,7 +26,7 @@ int main()
   if (!mongo_uri_env || !blocksci_setting_env || !server_url_env) 
   {
       std::cerr << "One or more required environment variables are not set." << std::endl;
-      return 1; // 또는 적절한 오류 처리
+      return 1;
   }
   MongoDB::Instance();
 
@@ -38,10 +38,6 @@ int main()
   // BlockSci와 Handler 객체를 초기화
   blocksci::Blockchain chain(blocksciSetting);
   Handler listener(serverUrl, chain, mongoUri);
-
-  // blocksci::Blockchain chain("/home/bitcoin-core/.blocksci/config.json");
-  // utility::string_t url = U("http://0.0.0.0:7776");
-  // Handler listener(url, chain, mongoUri);
 
   signal(SIGINT, signalHandler);  // Ctrl+C
   signal(SIGTERM, signalHandler); // 종료 명령

@@ -10,7 +10,7 @@ SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
 # 실행 파일 이름
-TARGET = info-server
+TARGET = core-server
 
 all: $(TARGET)
 

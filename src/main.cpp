@@ -4,6 +4,7 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 
 #include "Handler.hpp"
 #include "MongoDB.hpp"
@@ -18,11 +19,29 @@ void signalHandler(int signum)
 
 int main()
 {
+  const char* mongo_uri_env = std::getenv("MONGO_URI");
+  const char* blocksci_setting_env = std::getenv("BLOCKSCI_SETTING");
+  const char* server_url_env = std::getenv("SERVER_URL");
+
+  if (!mongo_uri_env || !blocksci_setting_env || !server_url_env) 
+  {
+      std::cerr << "One or more required environment variables are not set." << std::endl;
+      return 1; // 또는 적절한 오류 처리
+  }
   MongoDB::Instance();
-  std::string mongoUri = "mongodb://mongodb:kit20232023@localhost:27018";
-  blocksci::Blockchain chain("/home/bitcoin-core/.blocksci/config.json");
-  utility::string_t url = U("http://0.0.0.0:7776");
-  Handler listener(url, chain, mongoUri);
+
+  // 환경 변수 값을 std::string 객체로 변환
+  const std::string mongoUri(mongo_uri_env);
+  const std::string blocksciSetting(blocksci_setting_env);
+  const utility::string_t serverUrl = utility::conversions::to_string_t(server_url_env);
+
+  // BlockSci와 Handler 객체를 초기화
+  blocksci::Blockchain chain(blocksciSetting);
+  Handler listener(serverUrl, chain, mongoUri);
+
+  // blocksci::Blockchain chain("/home/bitcoin-core/.blocksci/config.json");
+  // utility::string_t url = U("http://0.0.0.0:7776");
+  // Handler listener(url, chain, mongoUri);
 
   signal(SIGINT, signalHandler);  // Ctrl+C
   signal(SIGTERM, signalHandler); // 종료 명령

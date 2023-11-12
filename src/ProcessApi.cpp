@@ -194,9 +194,9 @@ std::string ProcessApi::getTxInWallet(const std::string &hash, const time_t &sta
                     auto spendingInput = output.getSpendingInput();
                     json spending_outpoints;
                     spending_outpoints["txid"] = spendingInput->transaction().getHash().GetHex();
-                    spending_outpoints["n"] = spendingInput->inputIndex();
+                    spending_outpoints["time"] = spendingInput->transaction().block().timestamp();
                     spending_outpoints["value"] = output.getValue();
-                    txDoc["spending_outpoints"] = spending_outpoints;
+                    txDoc["spending_outpoints"].push_back(spending_outpoints);
                 }
             }
         };
@@ -280,8 +280,7 @@ json ProcessApi::MakeOutputData(blocksci::Output output)
         auto spendingInput = output.getSpendingInput();
         json spending_outpoints;
         spending_outpoints["txid"] = spendingInput->transaction().getHash().GetHex();
-        spending_outpoints["n"] = spendingInput->inputIndex();
-        spending_outpoints["value"] = output.getValue();
+        spending_outpoints["time"] = spendingInput->transaction().block().timestamp();
         res["spending_outpoints"] = spending_outpoints;
     }
     else
